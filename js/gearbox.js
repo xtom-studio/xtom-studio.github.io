@@ -131,7 +131,7 @@ function createGearbox(canvas, { reduced = false, dragEl = canvas } = {}) {
   const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 200);
   const drawMat = lineMaterial(), meshMat = lineMaterial();
   const cut = new THREE.Plane(new THREE.Vector3(-1, 0, 0), -10);
-  const metal = (color, rough) => new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: rough, envMapIntensity: 1.25, clearcoat: 0.6, clearcoatRoughness: 0.2, clippingPlanes: [cut], polygonOffset: true, polygonOffsetFactor: 1.5, polygonOffsetUnits: 2 });
+  const metal = (color, rough) => new THREE.MeshStandardMaterial({ color, metalness: 1, roughness: rough, envMapIntensity: 1.35, clippingPlanes: [cut], polygonOffset: true, polygonOffsetFactor: 1.5, polygonOffsetUnits: 2 });
   const chrome = metal(0xffffff, 0.12), graphite = metal(0xa3abba, 0.3);
 
   const box = new THREE.Group(); scene.add(box);
@@ -249,9 +249,20 @@ function createGearbox(canvas, { reduced = false, dragEl = canvas } = {}) {
   let W = 1, H = 1, raf = 0, frameCb = null;
   const dir = new THREE.Vector3(), target = new THREE.Vector3();
 
+  // adaptive resolution: keep frames inside the display's budget on 60 to 120 Hz screens
+  const prMax = () => Math.min(window.devicePixelRatio || 1, W < 720 ? 1.25 : 1.5);
+  let pr = 0, ema = 8, slowFor = 0, fastFor = 0;
+  function adapt(dtMs) {
+    ema += (dtMs - ema) * 0.08;
+    if (ema > 19) { slowFor += dtMs; fastFor = 0; } else if (ema < 11) { fastFor += dtMs; slowFor = 0; } else { slowFor = fastFor = 0; }
+    if (slowFor > 900 && pr > 0.75) { pr = Math.max(0.75, pr - 0.25); renderer.setPixelRatio(pr); renderer.setSize(W, H, false); slowFor = 0; }
+    else if (fastFor > 4000 && pr < prMax()) { pr = Math.min(prMax(), pr + 0.25); renderer.setPixelRatio(pr); renderer.setSize(W, H, false); fastFor = 0; }
+  }
+
+
   function resize() {
     const r = canvas.getBoundingClientRect(); W = Math.max(1, r.width); H = Math.max(1, r.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, W < 720 ? 1.5 : 1.75));
+    pr = pr ? Math.min(pr, prMax()) : prMax(); renderer.setPixelRatio(pr);
     renderer.setSize(W, H, false);
     st.wide = W / H > 1.05;
     camera.fov = st.wide ? 24 : 30; camera.aspect = W / H;
@@ -272,7 +283,7 @@ function createGearbox(canvas, { reduced = false, dragEl = canvas } = {}) {
 
   function frame(now) {
     raf = 0;
-    const dt = Math.min(0.05, (now - (st.last || now)) / 1000); st.last = now; st.time += dt;
+    const dtMs = now - (st.last || now), dt = Math.min(0.05, dtMs / 1000); st.last = now; st.time += dt; if (dtMs > 0 && dtMs < 200) adapt(dtMs);
     st.draw = reduced ? 1 : 1 - Math.pow(1 - clamp((now - st.born - 350) / 2800), 3);
     st.p += (st.pt - st.p) * (reduced ? 1 : 1 - Math.exp(-dt * 5));
     const p = st.p;

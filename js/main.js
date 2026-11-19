@@ -11,7 +11,7 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const gsap = window.gsap, ST = window.ScrollTrigger;
 const hasGsap = !!(gsap && ST);
-if (hasGsap) gsap.registerPlugin(ST);
+if (hasGsap) { gsap.registerPlugin(ST); ST.config({ ignoreMobileResize: true }); }
 
 /* ---------- smooth scroll ---------- */
 let lenis = null;
@@ -52,16 +52,22 @@ function setSheet(el) {
   const id = el.id;
   navLinks.forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false'));
   if (nowN) { nowN.textContent = el.dataset.sheet; nowT.textContent = el.dataset.title; }
-  root.dataset.sheetNow = el.dataset.sheet;          // the ambient light changes colour per sheet
 }
 
-const ruler = $('.ruler'), rulerLbl = $('.ruler-mark span');
+const ruler = $('.ruler'), rulerMark = $('.ruler-mark'), rulerLbl = $('.ruler-mark span'), film = $('.film');
+let docH = 1, rulerH = 0, rulerOn = false;
+const measure = () => { docH = Math.max(1, document.documentElement.scrollHeight - innerHeight); rulerOn = !!(ruler && ruler.offsetParent !== null); rulerH = rulerOn ? ruler.clientHeight - 30 : 0; };
+measure(); addEventListener('resize', measure); addEventListener('load', measure);
+if ('ResizeObserver' in window) new ResizeObserver(measure).observe(document.body);
+let scrollIdle = 0;
 function onScroll() {
-  const y = window.scrollY, max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-  root.style.setProperty('--film-y', (-((y * 0.12) % 40)).toFixed(2) + 'px');
-  if (ruler && ruler.offsetParent !== null) {
-    const p = clamp(y / max), h = ruler.clientHeight - 30;
-    root.style.setProperty('--ruler-y', (p * h).toFixed(1) + 'px');
+  const y = window.scrollY, max = docH;
+  if (film) film.style.transform = `translate3d(0,${(-((y * 0.12) % 40)).toFixed(2)}px,0)`;
+  if (!root.classList.contains('is-scrolling')) root.classList.add('is-scrolling');
+  clearTimeout(scrollIdle); scrollIdle = setTimeout(() => root.classList.remove('is-scrolling'), 160);
+  if (rulerOn) {
+    const p = clamp(y / max), h = rulerH;
+    rulerMark.style.transform = `translate3d(0,${(p * h).toFixed(1)}px,0)`;
     const zone = 'Zone ' + 'ABCDEFGH'[Math.min(7, Math.floor(p * 8))]; if (rulerLbl.textContent !== zone) rulerLbl.textContent = zone;
   }
   if (!hasGsap) {                                    // fallback sheet tracking without ScrollTrigger
@@ -131,9 +137,9 @@ else {
 const tb = $('.tblock');
 if (tb && 'ResizeObserver' in window) new ResizeObserver(() => stage.style.setProperty('--tb-h', tb.offsetHeight + 'px')).observe(tb);
 
-/* ---------- pause looping diagrams off screen ---------- */
-const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('paused', !e.isIntersecting)), { rootMargin: '120px' });
-$$('[data-anim]').forEach(s => io.observe(s));
+/* ---------- pause looping diagrams off screen, one by one ---------- */
+const io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('paused', !e.isIntersecting)), { rootMargin: '60px' });
+$$('.detail, .arc').forEach(s => { s.classList.add('paused'); io.observe(s); });
 
 /* ---------- motion: lines draw first, then ink fills ---------- */
 function splitWords(el) {
@@ -261,8 +267,8 @@ if (createSeabed) {
 if (hasGsap && !reduced) {
   $$('.app').forEach(app => {
     const vis = $('.app-visual', app), body = $('.app-body', app);
-    gsap.fromTo(vis, { clipPath: 'inset(14% 10% 14% 10% round 18px)' }, { clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none', scrollTrigger: { trigger: app, start: 'top 92%', end: 'top 38%', scrub: 0.6 } });
-    gsap.fromTo($$(':scope > canvas, :scope > .tour', vis), { scale: 1.12 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: app, start: 'top 92%', end: 'top 30%', scrub: 0.6 } });
+    gsap.fromTo(vis, { clipPath: 'inset(12% 9% 12% 9%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'expo.out', clearProps: 'clipPath', scrollTrigger: { trigger: app, start: 'top 80%', once: true } });
+    gsap.fromTo($$(':scope > canvas, :scope > .tour', vis), { scale: 1.1 }, { scale: 1, duration: 1.6, ease: 'expo.out', clearProps: 'transform', scrollTrigger: { trigger: app, start: 'top 80%', once: true } });
     gsap.from($$(':scope > *', body), { y: 24, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.07, scrollTrigger: { trigger: app, start: 'top 70%', once: true } });
   });
 }

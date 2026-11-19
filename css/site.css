@@ -51,13 +51,13 @@ button{font:inherit;color:inherit}
 .c1{stop-color:var(--ch1)}.c2{stop-color:var(--ch2)}.c3{stop-color:var(--ch3)}.c4{stop-color:var(--ch4)}.c5{stop-color:var(--ch5)}
 
 /* drafting film: a 40px grid on its own plane, drifting at a fraction of the scroll */
-body::before{content:"";position:fixed;left:0;right:0;top:-40px;height:calc(100vh + 80px);z-index:-1;pointer-events:none;
+.film{position:fixed;left:0;right:0;top:-40px;height:calc(100vh + 80px);z-index:-1;pointer-events:none;will-change:transform;
   background-image:linear-gradient(rgba(95,208,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(95,208,255,.045) 1px,transparent 1px);
-  background-size:40px 40px;transform:translate3d(0,var(--film-y,0px),0)}
-body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(130% 100% at 50% 45%,transparent 55%,rgba(5,6,10,.42))}
+  background-size:40px 40px}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;will-change:transform;background:radial-gradient(130% 100% at 50% 45%,transparent 55%,rgba(5,6,10,.42))}
 
 /* ---------- the drawing border ---------- */
-.frame{position:fixed;inset:var(--fr);z-index:45;pointer-events:none;border:1px solid var(--line-2)}
+.frame{position:fixed;inset:var(--fr);z-index:45;pointer-events:none;border:1px solid var(--line-2);will-change:transform}
 .frame .reg{position:absolute;width:15px;height:15px}
 .frame .reg::before,.frame .reg::after{content:"";position:absolute;background:var(--line-3)}
 .frame .reg::before{left:7px;top:0;width:1px;height:15px}
@@ -69,7 +69,7 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 /* zone ruler on the right border, lettered A to H like a drawing sheet */
 .ruler{position:fixed;z-index:44;right:var(--fr);top:calc(var(--fr) + var(--nav-h));bottom:var(--fr);width:var(--rule);border-left:1px solid var(--line-2);pointer-events:none;background:color-mix(in oklab,var(--bg) 70%,transparent)}
 .ruler-track{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,var(--line-2) 0 1px,transparent 1px 2.5%) right/8px 100% no-repeat,repeating-linear-gradient(to bottom,var(--line-3) 0 1px,transparent 1px 12.5%) right/18px 100% no-repeat}
-.ruler-mark{position:absolute;left:0;right:0;top:0;height:1px;background:var(--sky);transform:translate3d(0,var(--ruler-y,0px),0)}
+.ruler-mark{position:absolute;left:0;right:0;top:0;height:1px;background:var(--sky);will-change:transform}
 .ruler-mark span{position:absolute;right:calc(100% + 8px);top:6px;font:500 11.5px/18px var(--mono);letter-spacing:.06em;color:var(--sky);white-space:nowrap;padding:0 6px;background:var(--bg);border:1px solid var(--line-2)}
 
 /* ---------- nav: the sheet index along the top border ---------- */
@@ -550,20 +550,8 @@ button.phone:hover .phone-zoom,button.phone:focus-visible .phone-zoom{opacity:1}
 
 
 /* ---------- ambient light: soft colour fields that shift per sheet, seen through frosted glass ---------- */
-@property --a1{syntax:'<color>';inherits:true;initial-value:#5FD0FF}
-@property --a2{syntax:'<color>';inherits:true;initial-value:#9D86FF}
-@property --a3{syntax:'<color>';inherits:true;initial-value:#4FE3A0}
-@property --a4{syntax:'<color>';inherits:true;initial-value:#FF7EB6}
-:root{--a1:#5FD0FF;--a2:#9D86FF;--a3:#4FE3A0;--a4:#FF7EB6;transition:--a1 1.8s ease,--a2 1.8s ease,--a3 1.8s ease,--a4 1.8s ease}
-:root[data-sheet-now="02"]{--a1:#4FE3A0;--a2:#5FD0FF;--a3:#9D86FF;--a4:#5FD0FF}
-:root[data-sheet-now="03"]{--a1:#5FD0FF;--a2:#4FE3A0;--a3:#5FD0FF;--a4:#9D86FF}
-:root[data-sheet-now="04"]{--a1:#9D86FF;--a2:#5FD0FF;--a3:#4FE3A0;--a4:#FF7EB6}
-:root[data-sheet-now="05"]{--a1:#FFC86B;--a2:#9D86FF;--a3:#5FD0FF;--a4:#FFC86B}
-:root[data-sheet-now="06"]{--a1:#5FD0FF;--a2:#9D86FF;--a3:#4FE3A0;--a4:#5FD0FF}
-:root[data-sheet-now="07"]{--a1:#4FE3A0;--a2:#FFC86B;--a3:#5FD0FF;--a4:#4FE3A0}
-:root[data-sheet-now="08"]{--a1:#9D86FF;--a2:#5FD0FF;--a3:#FF7EB6;--a4:#9D86FF}
-:root[data-sheet-now="09"]{--a1:#4FE3A0;--a2:#5FD0FF;--a3:#9D86FF;--a4:#FFC86B}
-.ambient{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+:root{--a1:#5FD0FF;--a2:#9D86FF;--a3:#4FE3A0;--a4:#FF7EB6}
+.ambient{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;contain:strict;will-change:transform}
 .ambient i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;background:radial-gradient(closest-side,color-mix(in oklab,var(--c) 50%,transparent),color-mix(in oklab,var(--c) 17%,transparent) 48%,transparent 74%);will-change:transform}
 .ambient .b1{--c:var(--a1);left:-26vmax;top:-30vmax;opacity:.44;animation:amb1 40s ease-in-out infinite alternate}
 .ambient .b2{--c:var(--a2);right:-30vmax;top:-4vh;opacity:.34;animation:amb2 52s ease-in-out infinite alternate}
@@ -573,21 +561,20 @@ button.phone:hover .phone-zoom,button.phone:focus-visible .phone-zoom{opacity:1}
 @keyframes amb2{to{transform:translate3d(-18vw,22vh,0) scale(.9)}}
 @keyframes amb3{to{transform:translate3d(26vw,-14vh,0) scale(1.1)}}
 @keyframes amb4{to{transform:translate3d(-24vw,-18vh,0) scale(1.2)}}
-.ambient::after{content:"";position:absolute;inset:0;opacity:.09;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* ---------- frosted glass panels ---------- */
 :root{
-  --glass-fill:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,.02) 42%,rgba(255,255,255,.035));
+  --glass-fill:linear-gradient(155deg,rgba(40,46,64,.74),rgba(20,23,34,.7) 42%,rgba(26,30,44,.74));
   --glass-blur:blur(18px) saturate(1.5);
   --glass-edge:inset 0 1px 0 rgba(255,255,255,.09),inset 0 -1px 0 rgba(255,255,255,.02);
   --glass-drop:0 28px 60px -38px rgba(0,0,0,.75);
 }
-.nav{background:linear-gradient(180deg,rgba(16,18,28,.72),rgba(10,11,18,.6));-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5)}
-.detail,.app,.arc,.tblock,.inspector,.early,.dl,.readout,.vm>div{background:var(--glass-fill);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge),var(--glass-drop)}
+.nav{background:linear-gradient(180deg,rgba(16,18,28,.94),rgba(11,12,20,.9));will-change:transform}
+.detail,.app,.arc,.tblock,.inspector,.early,.dl,.readout,.vm>div{background:var(--glass-fill);box-shadow:var(--glass-edge),var(--glass-drop)}
 .details{gap:12px;border:0}
 .detail{border:1px solid var(--line-2);border-radius:4px}
 .detail::after{right:-7px;bottom:-7px}
-.detail:hover{background:linear-gradient(155deg,rgba(95,208,255,.1),rgba(255,255,255,.025) 45%,rgba(157,134,255,.05));border-color:var(--line-3)}
+.detail:hover{background:linear-gradient(155deg,rgba(44,62,84,.8),rgba(22,26,38,.74) 45%,rgba(34,30,52,.76));border-color:var(--line-3)}
 .vm>div{padding:22px 24px;border:1px solid var(--line-2);border-radius:4px}
 .app{border-radius:4px;overflow:hidden}
 .app::before,.app::after{z-index:4}
@@ -795,3 +782,9 @@ canvas.seabed{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer
   .m2-stage{position:relative}
   .ambient i{animation:none}
 }
+
+/* ---------- performance: smooth scrolling at 60 to 120 Hz ---------- */
+.lenis.lenis-stopped{overflow:hidden}
+.is-scrolling .dg,.is-scrolling .dg *{animation-play-state:paused!important}
+.scene,.m2-canvas,canvas.seabed{will-change:transform}
+.app-visual,.detail,.arc{contain:layout paint}

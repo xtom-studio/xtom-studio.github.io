@@ -105,7 +105,7 @@ function createSeabed(cv, host, { place = null, seed = 0 } = {}) {
   }
   function layout() {
     [ctx, w, h] = fit(cv);
-    cell = w < 600 ? 12 : 15;
+    cell = w < 600 ? 15 : 19;
     cols = Math.ceil(w / cell) + 2; rows = Math.ceil(h / cell) + 2;
     bump = new Float32Array(cols * rows); val = new Float32Array(cols * rows);
     isl = null;
@@ -204,13 +204,17 @@ function createSeabed(cv, host, { place = null, seed = 0 } = {}) {
   addEventListener('scroll', () => { scrolling = performance.now(); }, { passive: true });
   function loop(now) {
     raf = 0; if (!visible || document.hidden) return;
-    if (now - scrolling > 140 && now - last >= interval - 1) {
+    if (now - scrolling > 180 && now - last >= interval - 1) {
       const t0 = performance.now(); render(now); last = now;
-      const dt = performance.now() - t0; slow = slow * 0.9 + dt * 0.1; interval = slow > 8 ? 1000 / 20 : 1000 / 30;
+      const dt = performance.now() - t0; slow = slow * 0.9 + dt * 0.1;
+      const busy = ptr.a > 0.02 || ptr.ta > 0 || pings.length > 0;
+      interval = slow > 6 ? 1000 / 15 : busy ? 1000 / 30 : 1000 / 15;
     }
     if (!reduced()) raf = requestAnimationFrame(loop);
   }
   function kick() { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(loop); }
+  // lay the chart out before it scrolls into view, so the first visible frame is cheap
+  new IntersectionObserver(es => { if (es[0].isIntersecting && !w) { const go = () => layout(); 'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 600 }) : setTimeout(go, 0); } }, { rootMargin: '700px 0px' }).observe(host);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible && !w) layout(); kick(); if (visible && reduced()) render(performance.now()); }).observe(host);
   document.addEventListener('visibilitychange', kick);
   host.addEventListener('pointermove', e => {

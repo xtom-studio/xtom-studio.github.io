@@ -15,7 +15,7 @@ const isGold = () => root.classList.contains('gold');
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
-function fit(cv, cap = 2) {
+function fit(cv, cap = 1.5) {
   const dpr = Math.min(cap, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
   const W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(h * dpr));
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
@@ -471,8 +471,11 @@ function showcase(visual, opts) {
   const reset = () => { paused = false; ui.paused(false); };
   const startIntro = () => { reset(); if (!intro) { startTour(); return; } state = 'intro'; t0 = performance.now(); visual.classList.remove('touring'); opts.stopTour && opts.stopTour(); };
   const startTour = () => { state = 'tour'; t0 = performance.now(); visual.classList.add('touring'); opts.startTour && opts.startTour(); };
+  let lastDraw = 0;
   const tick = now => {
     raf = 0; if (!visible) return;
+    if (root.classList.contains('is-scrolling') && now - lastDraw < 50) { raf = requestAnimationFrame(tick); return; }
+    lastDraw = now;
     try {
       const el = Math.max(0, now - t0);
       if (state === 'intro') { const [ctx, w, h] = fit(intro); opts.intro(ctx, w, h, el); if (el > opts.introLen) startTour(); }
@@ -934,7 +937,7 @@ const Part3D = (() => {
       tc.fillStyle = '#ECF1F7'; tc.beginPath(); tc.arc(oo[0], oo[1], 2.4, 0, 7); tc.fill();
     }
   }
-  const loop = now => { raf = 0; if (!visible) return; if (now - last > 30) { draw(now); last = now; } if (motionOK) raf = requestAnimationFrame(loop); };
+  const loop = now => { raf = 0; if (!visible) return; if (now - last > 30 && !root.classList.contains('is-scrolling')) { draw(now); last = now; } if (motionOK) raf = requestAnimationFrame(loop); };
   new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(loop); }).observe(cv);
   return { redraw() { draw(performance.now()); } };
 })();

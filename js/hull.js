@@ -184,13 +184,13 @@ function createHull(canvas, { reduced = false, dragEl = canvas } = {}) {
 
   const cutLocal = new THREE.Plane(new THREE.Vector3(-1, 0, 0), -L);
   const cut = new THREE.Plane();
-  const chromeMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 1, roughness: 0.18, envMapIntensity: 1.35, clearcoat: 0.8, clearcoatRoughness: 0.12,
+  const chromeMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, metalness: 1, roughness: 0.16, envMapIntensity: 1.45,
     side: THREE.DoubleSide, clippingPlanes: [cut], polygonOffset: true, polygonOffsetFactor: 1.5, polygonOffsetUnits: 2
   });
   const solid = new THREE.Group(); hull.add(solid);
   solid.add(new THREE.Mesh(hullGeometry(140, 40), chromeMat));
-  const deckMat = new THREE.MeshPhysicalMaterial({ color: 0xd3d9e2, metalness: 0.4, roughness: 0.38, envMapIntensity: 1.1, side: THREE.DoubleSide, clippingPlanes: [cut] });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xd3d9e2, metalness: 0.4, roughness: 0.38, envMapIntensity: 1.1, side: THREE.DoubleSide, clippingPlanes: [cut] });
   const house = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.3, 0.62), deckMat); house.position.set(-L / 2 + 0.6, freeboard(-0.8) + 0.15, 0); solid.add(house);
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.86), deckMat); bridge.position.set(-L / 2 + 0.66, freeboard(-0.8) + 0.38, 0); solid.add(bridge);
 
@@ -207,7 +207,7 @@ function createHull(canvas, { reduced = false, dragEl = canvas } = {}) {
     a.needsUpdate = true; ringGeo.setDrawRange(0, k);
   }
 
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(34, 34, 240, 240).rotateX(-Math.PI / 2), seaMaterial());
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(34, 34, 150, 150).rotateX(-Math.PI / 2), seaMaterial());
   sea.renderOrder = 1; scene.add(sea);
 
   const KEYS = [
@@ -222,9 +222,20 @@ function createHull(canvas, { reduced = false, dragEl = canvas } = {}) {
   let W = 1, H = 1, raf = 0, frameCb = null;
   const camPos = new THREE.Vector3(), dirTmp = new THREE.Vector3();
 
+  // adaptive resolution: keep frames inside the display's budget on 60 to 120 Hz screens
+  const prMax = () => Math.min(window.devicePixelRatio || 1, W < 720 ? 1.25 : 1.5);
+  let pr = 0, ema = 8, slowFor = 0, fastFor = 0;
+  function adapt(dtMs) {
+    ema += (dtMs - ema) * 0.08;
+    if (ema > 19) { slowFor += dtMs; fastFor = 0; } else if (ema < 11) { fastFor += dtMs; slowFor = 0; } else { slowFor = fastFor = 0; }
+    if (slowFor > 900 && pr > 0.75) { pr = Math.max(0.75, pr - 0.25); renderer.setPixelRatio(pr); renderer.setSize(W, H, false); slowFor = 0; }
+    else if (fastFor > 4000 && pr < prMax()) { pr = Math.min(prMax(), pr + 0.25); renderer.setPixelRatio(pr); renderer.setSize(W, H, false); fastFor = 0; }
+  }
+
+
   function resize() {
     const r = canvas.getBoundingClientRect(); W = Math.max(1, r.width); H = Math.max(1, r.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, W < 720 ? 1.5 : 1.75));
+    pr = pr ? Math.min(pr, prMax()) : prMax(); renderer.setPixelRatio(pr);
     renderer.setSize(W, H, false);
     const aspect = W / H; st.wide = aspect > 1.05;
     camera.fov = st.wide ? 24 : 30; camera.aspect = aspect;
@@ -246,7 +257,7 @@ function createHull(canvas, { reduced = false, dragEl = canvas } = {}) {
 
   function frame(now) {
     raf = 0;
-    const dt = Math.min(0.05, (now - (st.last || now)) / 1000); st.last = now; st.time += dt;
+    const dtMs = now - (st.last || now), dt = Math.min(0.05, dtMs / 1000); st.last = now; st.time += dt; if (dtMs > 0 && dtMs < 200) adapt(dtMs);
     if (!st.born) st.born = now;
     st.draw = reduced ? 1 : 1 - Math.pow(1 - clamp((now - st.born - 150) / 2400), 3);
     st.p += (st.pt - st.p) * (reduced ? 1 : 1 - Math.exp(-dt * 5));
